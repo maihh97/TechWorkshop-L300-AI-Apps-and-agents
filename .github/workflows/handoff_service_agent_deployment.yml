@@ -1,11 +1,11 @@
-name: Deploy Customer Loyalty Agent
+name: Deploy Handoff Service Agent
 
 on:
   push:
     paths:
-      - 'src/prompts/CustomerLoyaltyAgentPrompt.txt'
-      - 'src/infra/agents/customer-loyalty.json'
-      - '.github/workflows/customer_loyalty_agent_update.yml'
+      - 'src/prompts/HandOffAgentPrompt.txt'
+      - 'src/infra/agents/handoff-service.json'
+      - '.github/workflows/handoff_service_agent_deployment.yml'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -21,7 +21,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy customer-loyalty agent to Foundry
+      - name: Deploy handoff-service agent to Foundry
         env:
           FOUNDRY_ENDPOINT: ${{ secrets.FOUNDRY_ENDPOINT }}
           GPT_DEPLOYMENT: ${{ secrets.GPT_DEPLOYMENT }}
@@ -39,7 +39,7 @@ jobs:
           # Read the prompt file as raw text
           INSTRUCTIONS=$(python3 -c "
           import sys
-          with open('src/prompts/CustomerLoyaltyAgentPrompt.txt', 'r', encoding='utf-8') as f:
+          with open('src/prompts/HandOffAgentPrompt.txt', 'r', encoding='utf-8') as f:
               print(f.read())
           ")
 
@@ -47,7 +47,7 @@ jobs:
           jq --arg model "$GPT_DEPLOYMENT" \
              --arg instructions "$INSTRUCTIONS" \
              '.definition.model = $model | .definition.instructions = $instructions' \
-             src/infra/agents/customer-loyalty.json > /tmp/agent-payload.json
+             src/infra/agents/handoff-service.json > /tmp/agent-payload.json
 
           # Validate payload before calling API
           if ! jq -e '.definition.model | strings | length > 0' /tmp/agent-payload.json >/dev/null; then
@@ -61,9 +61,9 @@ jobs:
 
           # Create/update the agent version via Foundry REST API
           az rest --method POST \
-            --url "${FOUNDRY_ENDPOINT}/agents/customer-loyalty/versions?api-version=2025-11-15-preview" \
+            --url "${FOUNDRY_ENDPOINT}/agents/handoff-service/versions?api-version=2025-11-15-preview" \
             --headers "Content-Type=application/json" \
             --resource "https://ai.azure.com" \
             --body @/tmp/agent-payload.json
 
-          echo "Customer loyalty agent deployed successfully."
+          echo "Handoff service agent deployed successfully."
